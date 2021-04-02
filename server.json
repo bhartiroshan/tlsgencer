@@ -1,0 +1,22 @@
+{
+    "CN": "Roshans-MacBook-Pro.local",
+    "hosts": [
+        "localhost",
+        "Roshans-MacBook-Pro.local"
+    ],
+    "IPs": [
+        "127.0.0.1",
+        "10.1.2.1"
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": {
+        "C": "IN",
+        "ST": "DL",
+        "L": "New Delhi",
+        "O": "MongoDB",
+        "OU": "TSE"
+    }
+}

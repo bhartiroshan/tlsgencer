@@ -1,0 +1,21 @@
+{
+    "CN": "MongoDBCA",
+    "hosts": [
+        "www.MongoDBCA.com"
+    ],
+    "IPs": [
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": 
+        {
+            "C": "IN",
+            "ST": "DL",
+            "L": "New Delhi",
+            "O": "MongoDB",
+	        "OU": "TSE"
+        }
+    
+}
