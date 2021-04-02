@@ -1,7 +1,7 @@
 {
-    "CN": "MongoDBCA",
+    "CN": "MongoDBRootCA",
     "hosts": [
-        "www.MongoDBCA.com"
+        "www.MongoDBRootCA.com"
     ],
     "IPs": [
     ],
