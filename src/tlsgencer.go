@@ -40,7 +40,7 @@ func CreateCertConfig(cert Cert, certmode string) {
     // by the err variable and Fatalf method of 
     // log prints the error message and stops 
     // program execution
-    file, err := os.Create("openssl.cnf")
+    file, err := os.Create("../openssl.cnf")
       
     if err != nil {
 		fmt.Printf("Failed writing to file: %s", err)
@@ -50,10 +50,8 @@ func CreateCertConfig(cert Cert, certmode string) {
     // closing a running file after the file has 
     // been written and main //function has 
     // completed execution
-    defer file.Close()
-
-	test := "MongoDBIA"	
-	fmt.Println(cert)
+	defer file.Close()
+	
 	caconf := `	# NOT FOR PRODUCTION USE. OpenSSL configuration file for testing.
 	
 	# For the CA policy
@@ -62,7 +60,7 @@ func CreateCertConfig(cert Cert, certmode string) {
 	stateOrProvinceName = match
 	organizationName = match
 	organizationalUnitName = optional
-	commonName = `+test +`
+	commonName = `+cert.CN +`
 	emailAddress = optional
 	
 	[ req ]
@@ -90,15 +88,15 @@ func CreateCertConfig(cert Cert, certmode string) {
 	stateOrProvinceName_default = TestCertificateStateName
 	stateOrProvinceName_max = 64
 	localityName = Locality Name (eg, city)
-	localityName_default = TestCertificateLocalityName
+	localityName_default = `+cert.Names.Location+`
 	localityName_max = 64
 	
 	organizationName = Organization Name (eg, company)
-	organizationName_default = TestCertificateOrgName
+	organizationName_default = `+cert.Names.Org+`
 	organizationName_max = 64
 	
 	organizationalUnitName = Organizational Unit Name (eg, section)
-	organizationalUnitName_default = TestCertificateOrgUnitName
+	organizationalUnitName_default = `+cert.Names.OU+`
 	organizationalUnitName_max = 64
 	
 	commonName = Common Name (eg, YOUR name)
@@ -126,7 +124,7 @@ func CreateCertConfig(cert Cert, certmode string) {
 func main(){
 
 	// Open our jsonFile
-	jsonFile, err := os.Open("ca.json")
+	jsonFile, err := os.Open("../ca.json")
 
 	// if we os.Open returns an error then handle it
 	if err != nil {
