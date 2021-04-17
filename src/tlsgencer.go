@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"os/exec"
 	"io/ioutil"
 	"os"
 	"fmt"
@@ -18,7 +20,7 @@ type Cert struct {
 
 type Key struct {
 	Algo  string 	`json:"algo"`
-	Size  int 		`json:"size"`
+	Size  string 		`json:"size"`
 }
 
 type Names struct {
@@ -29,8 +31,8 @@ type Names struct {
 	OU			string `json:"OU"`
 }
 
-func CreateCertConfig(cert Cert, certmode string) {
-  
+func CreateCACerts(cert Cert,certtype string) {
+
     // fmt package implements formatted 
     // I/O and has functions like Printf
     // and Scanf
@@ -40,7 +42,7 @@ func CreateCertConfig(cert Cert, certmode string) {
     // by the err variable and Fatalf method of 
     // log prints the error message and stops 
     // program execution
-    file, err := os.Create("../openssl.cnf")
+    file, err := os.Create("openssl-"+certtype+".cnf")
       
     if err != nil {
 		fmt.Printf("Failed writing to file: %s", err)
@@ -53,14 +55,17 @@ func CreateCertConfig(cert Cert, certmode string) {
 	defer file.Close()
 	
 	caconf := `	# NOT FOR PRODUCTION USE. OpenSSL configuration file for testing.
-	
+	[req]
+	prompt = no
+	distinguished_name = req_distinguished_name
+	req_extensions = v3_req
 	# For the CA policy
 	[ policy_match ]
 	countryName = match
 	stateOrProvinceName = match
 	organizationName = match
 	organizationalUnitName = optional
-	commonName = `+cert.CN +`
+	commonName = match
 	emailAddress = optional
 	
 	[ req ]
@@ -79,28 +84,17 @@ func CreateCertConfig(cert Cert, certmode string) {
 	extendedKeyUsage  = serverAuth, clientAuth
 	
 	[ req_dn ]
-	countryName = Country Name (2 letter code)
-	countryName_default =
-	countryName_min = 2
-	countryName_max = 2
+	countryName =` +cert.Names.Country+`
+
+	stateOrProvinceName =` +cert.Names.Location+`
+
+	localityName =` +cert.Names.Location+`
+
+	organizationName =` +cert.Names.Org+`
 	
-	stateOrProvinceName = State or Province Name (full name)
-	stateOrProvinceName_default = TestCertificateStateName
-	stateOrProvinceName_max = 64
-	localityName = Locality Name (eg, city)
-	localityName_default = `+cert.Names.Location+`
-	localityName_max = 64
+	organizationalUnitName =` +cert.Names.OU+`
 	
-	organizationName = Organization Name (eg, company)
-	organizationName_default = `+cert.Names.Org+`
-	organizationName_max = 64
-	
-	organizationalUnitName = Organizational Unit Name (eg, section)
-	organizationalUnitName_default = `+cert.Names.OU+`
-	organizationalUnitName_max = 64
-	
-	commonName = Common Name (eg, YOUR name)
-	commonName_max = 64
+	commonName =` +cert.CN+`
 	
 	[ v3_ca ]
 	# Extensions for a typical CA
@@ -117,29 +111,111 @@ func CreateCertConfig(cert Cert, certmode string) {
   
     // Name() method returns the name of the 
     // file as presented to Create() method.
-    fmt.Printf("\nFile Name: %s", file.Name())
-    fmt.Printf("\nLength: %d bytes", len)
+	fmt.Printf("\nFile Name: %s created successfully", file.Name())
+	fmt.Printf("\nLength: %d bytes written", len)
+	fmt.Printf("\n Generating %s key of length %s",certtype,cert.Key.Size)
+	genKey(cert.Key.Size,certtype)
+	
+}
+func genKey(size string,mode string){
+
+	cmd := exec.Command("openssl", "genrsa","-out","mongodb-test-"+mode+".key",size)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+    if err != nil {
+        fmt.Printf("cmd.Run() failed with %s\n", err)
+    }
+    outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+    fmt.Printf("\n%s\n%s\n", outStr, errStr)	
+}
+
+func loadCert(filename string)Cert{
+		// Open our jsonFile
+		jsonFile, err := os.Open(filename)
+		// if we os.Open returns an error then handle it
+		if err != nil {
+			fmt.Println(err)
+		}	
+		// defer the closing of our jsonFile so that we can parse it later on
+		defer jsonFile.Close()	
+		//JSON File handling
+		var cert Cert
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+		json.Unmarshal(byteValue, &cert)
+
+		return cert
+}
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+    if _, err := os.Stat(name); err != nil {
+        if os.IsNotExist(err) {
+            return false
+        }
+    }
+    return true
+}
+
+//Generate first certificate to sign server certificates
+func generateCA(){
+	var certCA,certIA Cert
+	certCA = loadCert("rootCA.json")
+	CreateCACerts(certCA,"CA")
+	certIA = loadCert("ca.json")
+	CreateCACerts(certIA,"IA")
+
+	//Root CA Certs
+	cmd := exec.Command("openssl", "req", "-new", "-x509", "-days", "1826", "-key", "mongodb-test-CA.key", "-out", "mongodb-test-ca.crt", "-config", "openssl-CA.cnf")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+    if err != nil {
+        fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
+    }else{
+		fmt.Printf("\nCA Cert generation was successful: mongodb-test-ca.crt %s\n", outStr)
+	}
+
+	//Generate IA CSR
+	cmd = exec.Command("openssl", "req", "-new", "-key", "mongodb-test-ia.key", "-out", "mongodb-test-ia.csr", "-config", "openssl-IA.cnf")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	outStr, errStr = string(stdout.Bytes()), string(stderr.Bytes())
+    if err != nil {
+        fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
+    }else{
+		fmt.Printf("\nIA Cert CSR generation was successful:%s\n", outStr)
+	}
+
+	//Sign IA Certs
+	cmd = exec.Command("openssl", "x509", "-sha256", "-req", "-days", "730", "-in", "mongodb-test-ia.csr", "-CA", "mongodb-test-ca.crt", "-CAkey", "mongodb-test-CA.key", "-set_serial", "01", "-out", "mongodb-test-ia.crt", "-extfile", "openssl-IA.cnf", "-extensions", "v3_ca")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	outStr, errStr = string(stdout.Bytes()), string(stderr.Bytes())
+    if err != nil {
+        fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
+    }else{
+		fmt.Printf("\nIA Cert generation was successful: mongodb-test-ia.crt%s\n", outStr)
+	}
+	
+
 }
 
 func main(){
 
-	// Open our jsonFile
-	jsonFile, err := os.Open("../ca.json")
-
-	// if we os.Open returns an error then handle it
-	if err != nil {
-		fmt.Println(err)
+	// Load cert file
+	isExistsCA := Exists("tlsgencer-ia.crt")
+	if isExistsCA == false {
+		fmt.Println("\nNo CA exist to sign certificates, generating CA certs.......")
+		generateCA()
+	}else{
+		fmt.Println("CA certificates exists to sign server certificates, using it to sign certificates.")
 	}
-
-	// defer the closing of our jsonFile so that we can parse it later on
-	defer jsonFile.Close()
-
-	//JSON File handling
-	var cert Cert
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	json.Unmarshal(byteValue, &cert)
-
-	CreateCertConfig(cert,string("CA"))
 
 }
 
