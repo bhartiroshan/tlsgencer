@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"bytes"
 	"os/exec"
 	"io/ioutil"
@@ -20,15 +21,15 @@ type Cert struct {
 
 type Key struct {
 	Algo  string 	`json:"algo"`
-	Size  string 		`json:"size"`
+	Size  string 	`json:"size"`
 }
 
 type Names struct {
-	Country 	string `json:"C"`
-	State		string `json:"ST"`
+	Country 	string 	`json:"C"`
+	State		string 	`json:"ST"`
 	Location	string	`json:"L"`
-	Org			string `json:"O"`
-	OU			string `json:"OU"`
+	Org			string 	`json:"O"`
+	OU			string 	`json:"OU"`
 }
 
 func CreateCACerts(cert Cert,certtype string) {
@@ -119,7 +120,7 @@ func CreateCACerts(cert Cert,certtype string) {
 }
 func genKey(size string,mode string){
 
-	cmd := exec.Command("openssl", "genrsa","-out","mongodb-test-"+mode+".key",size)
+	cmd := exec.Command("openssl", "genrsa","-out","tlsgencer-"+mode+".key",size)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -167,7 +168,7 @@ func generateCA(){
 	CreateCACerts(certIA,"IA")
 
 	//Root CA Certs
-	cmd := exec.Command("openssl", "req", "-new", "-x509", "-days", "1826", "-key", "mongodb-test-CA.key", "-out", "mongodb-test-ca.crt", "-config", "openssl-CA.cnf")
+	cmd := exec.Command("openssl", "req", "-new", "-x509", "-days", "1826", "-key", "tlsgencer-CA.key", "-out", "tlsgencer-ca.crt", "-config", "openssl-CA.cnf")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -176,11 +177,11 @@ func generateCA(){
     if err != nil {
         fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
     }else{
-		fmt.Printf("\nCA Cert generation was successful: mongodb-test-ca.crt %s\n", outStr)
+		fmt.Printf("\nCA Cert generation was successful: tlsgencer-ca.crt %s\n", outStr)
 	}
 
 	//Generate IA CSR
-	cmd = exec.Command("openssl", "req", "-new", "-key", "mongodb-test-ia.key", "-out", "mongodb-test-ia.csr", "-config", "openssl-IA.cnf")
+	cmd = exec.Command("openssl", "req", "-new", "-key", "tlsgencer-ia.key", "-out", "tlsgencer-ia.csr", "-config", "openssl-IA.cnf")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err = cmd.Run()
@@ -192,7 +193,7 @@ func generateCA(){
 	}
 
 	//Sign IA Certs
-	cmd = exec.Command("openssl", "x509", "-sha256", "-req", "-days", "730", "-in", "mongodb-test-ia.csr", "-CA", "mongodb-test-ca.crt", "-CAkey", "mongodb-test-CA.key", "-set_serial", "01", "-out", "mongodb-test-ia.crt", "-extfile", "openssl-IA.cnf", "-extensions", "v3_ca")
+	cmd = exec.Command("openssl", "x509", "-sha256", "-req", "-days", "730", "-in", "tlsgencer-ia.csr", "-CA", "tlsgencer-ca.crt", "-CAkey", "tlsgencer-CA.key", "-set_serial", "01", "-out", "tlsgencer-ia.crt", "-extfile", "openssl-IA.cnf", "-extensions", "v3_ca")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err = cmd.Run()
@@ -200,21 +201,95 @@ func generateCA(){
     if err != nil {
         fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
     }else{
-		fmt.Printf("\nIA Cert generation was successful: mongodb-test-ia.crt%s\n", outStr)
+		fmt.Printf("\nIA Cert generation was successful: tlsgencer-ia.crt%s\n", outStr)
 	}
 	
 
 }
 
+func generateServerConf(cert Cert){
+    file, err := os.Create("openssl-server.cnf")
+      
+    if err != nil {
+		fmt.Printf("Failed writing to file: %s", err)
+    }
+      
+    // Defer is used for purposes of cleanup like 
+    // closing a running file after the file has 
+    // been written and main //function has 
+    // completed execution
+	defer file.Close()
+
+	serverconf := `# NOT FOR PRODUCTION USE. OpenSSL configuration file for testing.
+	[ req ]
+	prompt = no
+	default_bits = 4096
+	default_keyfile = myTestServerCertificateKey.pem    ## The default private key file name.
+	default_md = sha256
+	distinguished_name = req_dn
+	req_extensions = v3_req
+	
+	[ v3_req ]
+	subjectKeyIdentifier  = hash
+	basicConstraints = CA:FALSE
+	keyUsage = critical, digitalSignature, keyEncipherment
+	nsComment = "OpenSSL Generated Certificate for TESTING only.  NOT FOR PRODUCTION USE."
+	extendedKeyUsage  = serverAuth, clientAuth
+	subjectAltName = @alt_names
+	
+	[ req_dn ]
+	countryName =` +cert.Names.Country+`
+
+	stateOrProvinceName =` +cert.Names.Location+`
+
+	localityName =` +cert.Names.Location+`
+
+	organizationName =` +cert.Names.Org+`
+	
+	organizationalUnitName =` +cert.Names.OU+`
+	
+	commonName =` +cert.CN
+
+	len, err := file.WriteString(serverconf)
+
+    if err != nil {
+        fmt.Printf("failed writing to file: %s", err)
+    }
+  
+    // Name() method returns the name of the 
+    // file as presented to Create() method.
+	fmt.Printf("\nFile Name: %s created successfully", file.Name())
+	fmt.Printf("\nLength: %d bytes written", len)
+	fmt.Printf("\n Generating %s key of length %s","server",cert.Key.Size)
+	genKey(cert.Key.Size,"server")
+
+}
+func generateServerCerts(){
+	var certServer Cert
+	certServer = loadCert("server.json")
+	generateServerConf(certServer)
+}
+
 func main(){
+
+	cmdArgs := os.Args[1:]
+	opts	:=	strings.Split(cmdArgs[0], "=")
+	if opts[0]=="-server"{
+		fmt.Println("Option is to generate server certs")
+		fmt.Println("Servers:", opts[1])
+		servers := strings.Split(opts[1],",")
+		fmt.Println(servers[0:])
+	}
 
 	// Load cert file
 	isExistsCA := Exists("tlsgencer-ia.crt")
 	if isExistsCA == false {
 		fmt.Println("\nNo CA exist to sign certificates, generating CA certs.......")
 		generateCA()
+		generateServerCerts()
 	}else{
 		fmt.Println("CA certificates exists to sign server certificates, using it to sign certificates.")
+		generateServerCerts()
 	}
 
 }

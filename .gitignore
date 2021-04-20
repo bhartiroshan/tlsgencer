@@ -3,3 +3,4 @@
 mongodb-test*
 src/*.key
 *.crt
+*.csr
