@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"bytes"
 	"os/exec"
@@ -264,21 +265,78 @@ func generateServerConf(cert Cert){
 	genKey(cert.Key.Size,"server")
 
 }
-func generateServerCerts(){
+func generateServerCerts(server []string, conf string){
+
 	var certServer Cert
 	certServer = loadCert("server.json")
 	generateServerConf(certServer)
+
+	file, err := os.OpenFile("openssl-server.cnf",os.O_APPEND|os.O_WRONLY,0644)
+	if err != nil {
+        fmt.Println(err)
+    }
+	defer file.Close()
+	_, err = file.WriteString("\n\n\t[ alt_names ]")
+	if err!=nil{
+		fmt.Println("Error occured while writing to the file.", err)
+	}
+	len := len(server)
+	for i :=0;i<len;i++{
+		_, err = file.WriteString("\n\t"+"DNS."+strconv.Itoa(i)+" = "+server[i])
+	}
+
+	//Generate Server CSR
+	var stdout, stderr bytes.Buffer
+	cmd := exec.Command("openssl", "req", "-new", "-key", "tlsgencer-server.key", "-out", "tlsgencer-server.csr", "-config", "openssl-server.cnf")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+    if err != nil {
+        fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
+    }else{
+		fmt.Printf("\nServer Cert CSR generation was successful:%s\n", outStr)
+	}
+
+	//Sign Server Certs
+	cmd = exec.Command("openssl", "x509", "-sha256", "-req", "-days", "365", "-in", "tlsgencer-server.csr", "-CA", "tlsgencer-ia.crt", "-CAkey", "tlsgencer-ia.key", "-CAcreateserial", "-out", "tlsgencer-server.crt", "-extfile", "openssl-server.cnf", "-extensions", "v3_req")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	outStr, errStr = string(stdout.Bytes()), string(stderr.Bytes())
+	if err != nil {
+		fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
+	}else{
+		fmt.Printf("\nServer Cert generation was successful: tlsgencer-ia.crt%s\n", outStr)
+	}
+
 }
+
+
+
 
 func main(){
 
 	cmdArgs := os.Args[1:]
-	opts	:=	strings.Split(cmdArgs[0], "=")
-	if opts[0]=="-server"{
+	opts	:=	cmdArgs[0]
+	var servers []string
+	var conf string
+	if opts =="-server"{
 		fmt.Println("Option is to generate server certs")
-		fmt.Println("Servers:", opts[1])
-		servers := strings.Split(opts[1],",")
-		fmt.Println(servers[0:])
+		opts01 := strings.Split(cmdArgs[1],"=")
+		if opts01[0] == "-host"{
+			servers = strings.Split(opts01[1],",")
+			fmt.Println("List of serrvers: ",servers)
+			conf = "false"
+		}
+		if opts01[0] == "-config"{
+			conf_file := opts01[1]
+			fmt.Println("Config file name is ",conf_file)
+			servers[0] = "false" 
+			conf = conf_file
+		}
+
+
 	}
 
 	// Load cert file
@@ -286,10 +344,10 @@ func main(){
 	if isExistsCA == false {
 		fmt.Println("\nNo CA exist to sign certificates, generating CA certs.......")
 		generateCA()
-		generateServerCerts()
+		generateServerCerts(servers,conf)
 	}else{
 		fmt.Println("CA certificates exists to sign server certificates, using it to sign certificates.")
-		generateServerCerts()
+		generateServerCerts(servers,conf)
 	}
 
 }
