@@ -312,9 +312,6 @@ func generateServerCerts(server []string, conf string){
 
 }
 
-
-
-
 func main(){
 
 	cmdArgs := os.Args[1:]
