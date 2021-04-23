@@ -266,7 +266,7 @@ func generateServerConf(cert Cert){
 
 }
 func generateServerCerts(server []string, conf string){
-
+	
 	var certServer Cert
 	certServer = loadCert("server.json")
 	generateServerConf(certServer)
@@ -280,9 +280,16 @@ func generateServerCerts(server []string, conf string){
 	if err!=nil{
 		fmt.Println("Error occured while writing to the file.", err)
 	}
-	len := len(server)
-	for i :=0;i<len;i++{
-		_, err = file.WriteString("\n\t"+"DNS."+strconv.Itoa(i)+" = "+server[i])
+	if conf=="false"{
+		len := len(server)
+		for i :=0;i<len;i++{
+			_, err = file.WriteString("\n\t"+"DNS."+strconv.Itoa(i)+" = "+server[i])
+		}
+	}else{
+		len := len(certServer.Hosts)
+		for i :=0;i<len;i++{
+			_, err = file.WriteString("\n\t"+"DNS."+strconv.Itoa(i)+" = "+certServer.Hosts[i])
+		}
 	}
 
 	//Generate Server CSR
@@ -329,7 +336,7 @@ func main(){
 		if opts01[0] == "-config"{
 			conf_file := opts01[1]
 			fmt.Println("Config file name is ",conf_file)
-			servers[0] = "false" 
+			servers = []string{"false"}
 			conf = conf_file
 		}
 

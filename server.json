@@ -2,7 +2,8 @@
     "CN": "Roshans-MacBook-Pro.local",
     "hosts": [
         "localhost",
-        "Roshans-MacBook-Pro.local"
+        "Roshans-MacBook-Pro.local",
+        "myaws.com"
     ],
     "IPs": [
         "127.0.0.1",
