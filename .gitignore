@@ -1,1 +1,7 @@
-./*.cnf
+*.cnf
+*.key
+mongodb-test*
+src/*.key
+*.crt
+*.csr
+*.srl

@@ -2,7 +2,8 @@
     "CN": "Roshans-MacBook-Pro.local",
     "hosts": [
         "localhost",
-        "Roshans-MacBook-Pro.local"
+        "Roshans-MacBook-Pro.local",
+        "myaws.com"
     ],
     "IPs": [
         "127.0.0.1",
@@ -10,7 +11,7 @@
     ],
     "key": {
         "algo": "rsa",
-        "size": 2048
+        "size": "4096"
     },
     "names": {
         "C": "IN",

@@ -1,13 +1,13 @@
 {
-    "CN": "MongoDBRootCA",
+    "CN": "tlsgencerRootCA",
     "hosts": [
-        "www.MongoDBRootCA.com"
+        "www.tlsgencerRootCA.test"
     ],
     "IPs": [
     ],
     "key": {
         "algo": "rsa",
-        "size": 2048
+        "size": "4096"
     },
     "names": 
         {
