@@ -247,9 +247,7 @@ func generateServerConf(cert Cert){
 
 	organizationName =` +cert.Names.Org+`
 	
-	organizationalUnitName =` +cert.Names.OU+`
-	
-	commonName =` +cert.CN
+	organizationalUnitName =` +cert.Names.OU
 
 	len, err := file.WriteString(serverconf)
 
@@ -265,7 +263,7 @@ func generateServerConf(cert Cert){
 	genKey(cert.Key.Size,"server")
 
 }
-func generateServerCerts(server []string, conf string){
+func generateServerCerts(server []string, conf string, cn string){
 	
 	var certServer Cert
 	certServer = loadCert("server.json")
@@ -276,20 +274,31 @@ func generateServerCerts(server []string, conf string){
         fmt.Println(err)
     }
 	defer file.Close()
-	_, err = file.WriteString("\n\n\t[ alt_names ]")
-	if err!=nil{
-		fmt.Println("Error occured while writing to the file.", err)
-	}
+	// _, err = file.WriteString("\n\n\t[ alt_names ]")
+	// if err!=nil{
+	// 	fmt.Println("Error occured while writing to the file.", err)
+	// }
+
 	if conf=="false"{
 		len := len(server)
+		_, err = file.WriteString("\n\n\tcommonName =" + cn + "\n\n\t[ alt_names ]") 
+		if err!=nil{
+			fmt.Println("Error occured while writing to the file.", err)
+		}
 		for i :=0;i<len;i++{
 			_, err = file.WriteString("\n\t"+"DNS."+strconv.Itoa(i)+" = "+server[i])
 		}
+
 	}else{
 		len := len(certServer.Hosts)
+		_, err = file.WriteString("\n\n\tcommonName =" + certServer.CN + "\n\n\t[ alt_names ]") 
+		if err!=nil{
+			fmt.Println("Error occured while writing to the file.", err)
+		}
 		for i :=0;i<len;i++{
 			_, err = file.WriteString("\n\t"+"DNS."+strconv.Itoa(i)+" = "+certServer.Hosts[i])
 		}
+
 	}
 
 	//Generate Server CSR
@@ -325,6 +334,7 @@ func main(){
 	opts	:=	cmdArgs[0]
 	var servers []string
 	var conf string
+	var cn string
 	if opts =="-server"{
 		fmt.Println("Option is to generate server certs")
 		opts01 := strings.Split(cmdArgs[1],"=")
@@ -332,12 +342,20 @@ func main(){
 			servers = strings.Split(opts01[1],",")
 			fmt.Println("List of serrvers: ",servers)
 			conf = "false"
+			opts02 := strings.Split(cmdArgs[2],"=")
+			if opts02[0]!="-cn"{
+				fmt.Println("CN Not specified, will use default CN from localhostt.")
+			}else{
+				cn = opts02[1]
+				fmt.Println("CN: ",cn)
+			}
 		}
 		if opts01[0] == "-config"{
 			conf_file := opts01[1]
 			fmt.Println("Config file name is ",conf_file)
 			servers = []string{"false"}
 			conf = conf_file
+			cn = "false"
 		}
 
 
@@ -348,10 +366,10 @@ func main(){
 	if isExistsCA == false {
 		fmt.Println("\nNo CA exist to sign certificates, generating CA certs.......")
 		generateCA()
-		generateServerCerts(servers,conf)
+		generateServerCerts(servers,conf,cn)
 	}else{
 		fmt.Println("CA certificates exists to sign server certificates, using it to sign certificates.")
-		generateServerCerts(servers,conf)
+		generateServerCerts(servers,conf,cn)
 	}
 
 }
