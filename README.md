@@ -1,10 +1,10 @@
-## TLSGENCER a wrapper over openssl to generate test server certificates.
+## tlsgencer a wrapper over openssl to generate test server certificates.
 
 ### Certificates can be used forr MongoDB Deployments, or other servers in general. 
 
 ### Generates CA Certs --signs--> IA Certs --signs--> Server Certs
 
-### Usage
+### Usage:
 
 - By supplying server name directly
 ```
