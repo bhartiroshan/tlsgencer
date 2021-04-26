@@ -8,9 +8,8 @@
 
 - By supplying server name directly
 ```
-./tlsgencer -server -host=localhost.com,myaws.com -cn=testserver
-
 % ./tlsgencer -server -host=localhost.com,myaws.com -cn=testcert
+
 Option is to generate server certs
 List of serrvers:  [localhost.com myaws.com]
 CN:  testcert
@@ -60,6 +59,7 @@ Server Cert CSR generation was successful:
 Server Cert generation was successful: tlsgencer-server.crt
 
 % openssl x509 -in tlsgencer-server.crt -noout -text 
+
 Certificate:
     Data:
         Version: 3 (0x2)
