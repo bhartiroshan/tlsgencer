@@ -104,3 +104,11 @@ Certificate:
     }
 }
 ```
+- For MongoDB combine `tlsgencer-server.crt` and `tlsgencer-server.key`
+```
+cat tlsgencer-server.crt tlsgencer-server.key > server.pem
+```
+- CA Certificates combine `tlsgencer-ca.crt` and `tlsgencer-ia.crt`
+```
+cat tlsgencer-ca.crt tlsgencer-ia.crt > ca.pem
+```
