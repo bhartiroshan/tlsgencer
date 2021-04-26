@@ -323,8 +323,24 @@ func generateServerCerts(server []string, conf string, cn string){
 	if err != nil {
 		fmt.Printf("cmd.Run() failed with %s\n%s", err,errStr)
 	}else{
-		fmt.Printf("\nServer Cert generation was successful: tlsgencer-ia.crt%s\n", outStr)
+		fmt.Printf("\nServer Cert generation was successful: tlsgencer-server.crt%s\n", outStr)
 	}
+
+	// file, err = os.Create("ca.pem")
+      
+    // if err != nil {
+	// 	fmt.Printf("Failed writing to file: %s", err)
+	// }
+	
+	// defer file.Close()
+	// data, err := ioutil.ReadFile("file.txt")
+	// if err != nil {
+	//   fmt.Println("File reading error", err)
+	//   return
+	// }
+	// fmt.Println("Contents of file:")
+	// fmt.Println(string(data))
+
 
 }
 
