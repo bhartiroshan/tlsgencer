@@ -194,7 +194,7 @@ func generateCA() {
 	}
 
 	//Sign IA Certs
-	cmd = exec.Command("openssl", "x509", "-sha256", "-req", "-days", "730", "-in", "tlsgencer-ia.csr", "-CA", "tlsgencer-ca.crt", "-CAkey", "tlsgencer-CA.key", "-set_serial", "01", "-out", "tlsgencer-ia.crt", "-extfile", "openssl-ia.cnf", "-extensions", "v3_ca")
+	cmd = exec.Command("openssl", "x509", "-sha256", "-req", "-days", "730", "-in", "tlsgencer-ia.csr", "-CA", "tlsgencer-ca.crt", "-CAkey", "tlsgencer-ca.key", "-set_serial", "01", "-out", "tlsgencer-ia.crt", "-extfile", "openssl-ia.cnf", "-extensions", "v3_ca")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err = cmd.Run()
