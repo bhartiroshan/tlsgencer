@@ -164,12 +164,12 @@ func Exists(name string) bool {
 func generateCA(){
 	var certCA,certIA Cert
 	certCA = loadCert("rootCA.json")
-	CreateCACerts(certCA,"CA")
+	CreateCACerts(certCA,"ca")
 	certIA = loadCert("ca.json")
-	CreateCACerts(certIA,"IA")
+	CreateCACerts(certIA,"ia")
 
 	//Root CA Certs
-	cmd := exec.Command("openssl", "req", "-new", "-x509", "-days", "1826", "-key", "tlsgencer-CA.key", "-out", "tlsgencer-ca.crt", "-config", "openssl-CA.cnf")
+	cmd := exec.Command("openssl", "req", "-new", "-x509", "-days", "1826", "-key", "tlsgencer-ca.key", "-out", "tlsgencer-ca.crt", "-config", "openssl-CA.cnf")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
