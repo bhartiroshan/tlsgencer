@@ -1,15 +1,28 @@
 ## tlsgencer a wrapper over openssl to generate test server certificates.
 
-### Certificates can be used forr MongoDB Deployments, or other servers in general. 
+- Certificates can be used for MongoDB Deployments, or other servers in general. 
 
-### Generates CA Certs --signs--> IA Certs --signs--> Server Certs
+- Generates CA Certs --signs--> IA Certs --signs--> Server Certs
 
-### Usage:
+## Usage:
+- Clone the repo on desired OS
 
-- By supplying server name directly
+### Running on Mac OS
+
+- Use `tlscermac` executable, use below command on shell directly.
 ```
-% ./tlsgencer -server -host=localhost.com,myaws.com -cn=testcert
+% cd tlsgencer
+% ./tlscermac -server -host=localhost.com,myaws.com -cn=testcert
+```
 
+### Running on Linux OS
+- Use `tlscerliunx` executable, use below command on shell directly.
+```
+% cd tlsgencer
+% ./tlscerlinux -server -host=localhost.com,myaws.com -cn=testcert
+```
+### Sample Output:
+```
 Option is to generate server certs
 List of serrvers:  [localhost.com myaws.com]
 CN:  testcert
@@ -74,9 +87,9 @@ Certificate:
             Public Key Algorithm: rsaEncryption
 
 ```
-- By supplying a config file e.g. see server.json
+### By supplying a config file e.g. see server.json
 ```
-./tlsgencer -server -config=server.json
+./[tlscermac|tlscerlinux] -server -config=server.json
 ```
 - server.json format
 ```
@@ -104,7 +117,7 @@ Certificate:
     }
 }
 ```
-- For MongoDB combine `tlsgencer-server.crt` and `tlsgencer-server.key`
+### For MongoDB combine `tlsgencer-server.crt` and `tlsgencer-server.key`
 ```
 cat tlsgencer-server.crt tlsgencer-server.key > server.pem
 ```
